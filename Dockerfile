@@ -27,6 +27,11 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy all source files
 COPY . .
 
+# Set dummy DATABASE_URL for Prisma Client generation
+# This is only used during build time for schema validation
+# Real DATABASE_URL will be provided at runtime via Cloud Run environment variables
+ENV DATABASE_URL="mongodb://localhost:27017/chatbot"
+
 # Generate Prisma Client
 RUN npx prisma generate
 
