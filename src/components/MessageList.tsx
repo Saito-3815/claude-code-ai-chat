@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { ChatMessage } from "@/lib/types";
 import { StreamingMessage } from "./StreamingMessage";
+import { ImagePreview } from "./ImagePreview";
 
 export interface MessageListProps {
   messages: ChatMessage[];
@@ -40,7 +41,7 @@ export function MessageList({ messages, streamingMessage }: MessageListProps) {
             チャットを始めましょう
           </h3>
           <p className="text-sm text-secondary-500 leading-relaxed">
-            メッセージを入力して送信してください。<br />
+            メッセージや画像を送信してください。<br />
             AIアシスタントがお手伝いします。
           </p>
         </div>
@@ -58,6 +59,11 @@ export function MessageList({ messages, streamingMessage }: MessageListProps) {
                 <div className="flex-1" />
                 <div className="flex flex-col items-end gap-2 max-w-[85%] sm:max-w-3xl">
                   <div className="bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-2xl rounded-tr-sm px-4 py-3 shadow-md hover:shadow-lg transition-shadow duration-200">
+                    {message.image && (
+                      <div className="mb-2">
+                        <ImagePreview image={message.image} size="large" />
+                      </div>
+                    )}
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {message.content}
                     </p>
