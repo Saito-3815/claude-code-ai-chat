@@ -1,10 +1,42 @@
 import { NextRequest } from "next/server";
 import { chatAgent } from "@/lib/mastra/agent";
-import type { ChatMessage, ChatRequest, StreamChunk } from "@/lib/types";
+import type { ChatMessage, ChatRequest, StreamChunk, ImageAttachment } from "@/lib/types";
+import { IMAGE_CONFIG } from "@/lib/types";
 import type { CoreMessage } from "ai";
 
 const MAX_MESSAGE_LENGTH = 10000;
 const MAX_MESSAGES = 50;
+
+/**
+ * 画像のバリデーション
+ */
+function validateImage(image: ImageAttachment): void {
+  if (!image.data || !image.mimeType) {
+    throw new Error("Invalid image attachment: missing data or mimeType");
+  }
+
+  if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(image.mimeType as any)) {
+    throw new Error(
+      `Invalid image type: ${image.mimeType}. Allowed types: ${IMAGE_CONFIG.ALLOWED_TYPES.join(", ")}`
+    );
+  }
+
+  // Base64デコードしてサイズを確認
+  try {
+    const binaryString = atob(image.data);
+    const bytes = binaryString.length;
+    if (bytes > IMAGE_CONFIG.MAX_SIZE) {
+      throw new Error(
+        `Image size exceeds maximum allowed size of ${IMAGE_CONFIG.MAX_SIZE / 1024 / 1024}MB`
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("exceeds maximum")) {
+      throw error;
+    }
+    throw new Error("Invalid Base64 image data");
+  }
+}
 
 /**
  * メッセージのバリデーションとサニタイゼーション
@@ -37,9 +69,15 @@ function validateAndSanitizeMessages(messages: ChatMessage[]): ChatMessage[] {
       );
     }
 
+    // 画像がある場合はバリデーション
+    if (msg.image) {
+      validateImage(msg.image);
+    }
+
     return {
       role: msg.role,
       content: msg.content.trim(),
+      image: msg.image,
     };
   });
 }
@@ -53,11 +91,31 @@ async function createStreamingResponse(messages: ChatMessage[]) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // ChatMessage[]をCoreMessage[]に変換
-        const coreMessages: CoreMessage[] = messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+        // ChatMessage[]をCoreMessage[]に変換（マルチモーダル対応）
+        const coreMessages: CoreMessage[] = messages.map((msg) => {
+          // 画像がある場合はマルチモーダルコンテンツとして扱う
+          if (msg.image) {
+            return {
+              role: msg.role,
+              content: [
+                {
+                  type: "image" as const,
+                  image: `data:${msg.image.mimeType};base64,${msg.image.data}`,
+                },
+                {
+                  type: "text" as const,
+                  text: msg.content,
+                },
+              ],
+            };
+          }
+
+          // テキストのみの場合
+          return {
+            role: msg.role,
+            content: msg.content,
+          };
+        });
 
         const mastraStream = await chatAgent.stream(coreMessages);
 

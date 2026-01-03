@@ -15,6 +15,8 @@ export function ChatInterface() {
     sendMessage,
     clearMessages,
     streamingMessage,
+    image,
+    setImage,
   } = useChat({
     onError: (err) => {
       console.error("Chat error:", err);
@@ -99,6 +101,8 @@ export function ChatInterface() {
         onChange={setInput}
         onSend={() => sendMessage()}
         disabled={isLoading}
+        image={image}
+        onImageChange={setImage}
       />
     </div>
   );
