@@ -15,7 +15,7 @@ function validateImage(image: ImageAttachment): void {
     throw new Error("Invalid image attachment: missing data or mimeType");
   }
 
-  if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(image.mimeType as any)) {
+  if (!(IMAGE_CONFIG.ALLOWED_TYPES as readonly string[]).includes(image.mimeType)) {
     throw new Error(
       `Invalid image type: ${image.mimeType}. Allowed types: ${IMAGE_CONFIG.ALLOWED_TYPES.join(", ")}`
     );

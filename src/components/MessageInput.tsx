@@ -59,7 +59,7 @@ export function MessageInput({
     }
 
     // MIMEタイプチェック
-    if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(file.type as any)) {
+    if (!(IMAGE_CONFIG.ALLOWED_TYPES as readonly string[]).includes(file.type)) {
       setUploadError("JPEG, PNG, GIF, WebP形式の画像のみアップロード可能です");
       return;
     }
