@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { ChatMessage, StreamChunk } from "@/lib/types";
+import type { ChatMessage, StreamChunk, ImageAttachment } from "@/lib/types";
 
 export interface UseChatOptions {
   initialMessages?: ChatMessage[];
@@ -17,6 +17,8 @@ export interface UseChatReturn {
   sendMessage: (content?: string) => Promise<void>;
   clearMessages: () => void;
   streamingMessage: string;
+  image: ImageAttachment | null;
+  setImage: (image: ImageAttachment | null) => void;
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatReturn {
@@ -24,6 +26,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [image, setImage] = useState<ImageAttachment | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [streamingMessage, setStreamingMessage] = useState("");
@@ -33,20 +36,22 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     async (content?: string) => {
       const messageContent = content || input.trim();
 
-      if (!messageContent || isLoading) {
+      if ((!messageContent && !image) || isLoading) {
         return;
       }
 
       // 新しいユーザーメッセージを作成
       const userMessage: ChatMessage = {
         role: "user",
-        content: messageContent,
+        content: messageContent || "画像を送信しました",
         timestamp: new Date(),
+        image: image || undefined,
       };
 
       // メッセージを追加
       setMessages((prev) => [...prev, userMessage]);
       setInput("");
+      setImage(null);
       setIsLoading(true);
       setError(null);
       setStreamingMessage("");
@@ -137,12 +142,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         abortControllerRef.current = null;
       }
     },
-    [input, messages, isLoading, onError]
+    [input, image, messages, isLoading, onError]
   );
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setInput("");
+    setImage(null);
     setError(null);
     setStreamingMessage("");
   }, []);
@@ -156,5 +162,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     sendMessage,
     clearMessages,
     streamingMessage,
+    image,
+    setImage,
   };
 }
